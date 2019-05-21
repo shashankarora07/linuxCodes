@@ -3,6 +3,7 @@
 #include<string.h>
 #include<sys/socket.h>
 #include<linux/in.h>
+#include<pthread.h>
 
 #define MAXLINE 4096
 #define SERV_PORT 3000
@@ -13,16 +14,17 @@ void fileTransfer(int newfd)
 	char buf_recv[100], buf_send[100];
 	char fbuffer[1000], filebuffer[1000];
 	char nbytes, len;
+	FILE *fp;
 
 	printf("Requesting client to send a filename\n");
 	sprintf(buf_send,"Please enter the filename:");
 	send(newfd,buf_send,strlen(buf_send),0);
 
 	printf("filename received from client: \n");
-	len = strlen(buf_recv);
-	nbytes = recv(newfd,buf_recv,len,0);
+	nbytes = recv(newfd,buf_recv,sizeof(buf_recv),0);
 	buf_recv[nbytes] = '\0';
 	printf("%s\n",buf_recv);
+	fflush(stdout);
 	
 	printf("\nNow checking file: %s exists or not..\n",buf_recv);
 	if ((fp = fopen(buf_recv,'r')) == NULL) {
@@ -47,7 +49,7 @@ void fileTransfer(int newfd)
 	printf("[Server] connection closed. Waiting for new connection..\n");
 }
 
-void *tFunc(int *arg)
+void *tFun(int *arg)
 {
 	struct sockaddr_in cAddr;
 	int sockfd = (int)arg;
@@ -92,13 +94,13 @@ int main(int argc, char **argv)
 		goto out;
 	}
 	
-	thRet = pthread_attr_init(&attr) {
+	thRet = pthread_attr_init(&attr);
 	if (thRet == -1) {
 		perror("pthread_attr_init failed");
 		goto out;
 	}
 	
-	thRet = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED) {
+	thRet = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
 	if (thRet == -1) {
 		perror("pthread_attr_setdetachstate failed");
 		goto out;
