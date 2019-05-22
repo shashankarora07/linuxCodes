@@ -7,7 +7,7 @@
 #include<linux/in.h>
 
 #define MAXLINE 4096
-#define SERV_PORT 3000
+#define SERV_PORT 3006
 
 int main(int argc, char **argv)
 {
@@ -48,6 +48,7 @@ int main(int argc, char **argv)
 	nbytes = recv(sockfd,buf_recv,sizeof(buf_recv),0);
 	buf_recv[nbytes] = '\0';
 	printf("%s\n",buf_recv);
+	fflush(stdout);
 
 	scanf("%s",buf_send);
 	send(sockfd,buf_send,strlen(buf_send),0);
@@ -56,14 +57,18 @@ int main(int argc, char **argv)
 	printf("Server checking File exits or not\n");
 	nbytes = recv(sockfd,buf_recv,sizeof(buf_recv),0);
 	buf_recv[nbytes] = '\0';
-	printf("%s\n",buf_recv);
+	printf("recevied string: %s\n",buf_recv);
+	fflush(stdout);
 
 	printf("\nReceiving the file content\n");
 	nbytes = recv(sockfd,frev_buf,sizeof(frev_buf),0);
+	printf("nbytes = %d\n",nbytes);
 	frev_buf[nbytes] = '\0';
+	fflush(stdout);
 	
-	fp = fopen("received_file.txt",'w');
-	fputs(filebuffer,fp);
+	printf("writes into filestream\n");
+	fp = fopen("received_file.txt","w");
+	fputs(frev_buf,fp);
 	fclose(fp);
 	close(sockfd);
 		

@@ -6,7 +6,7 @@
 #include<pthread.h>
 
 #define MAXLINE 4096
-#define SERV_PORT 3000
+#define SERV_PORT 3006
 #define LISTENQ 8
 
 void fileTransfer(int newfd)
@@ -22,28 +22,34 @@ void fileTransfer(int newfd)
 
 	printf("filename received from client: \n");
 	nbytes = recv(newfd,buf_recv,sizeof(buf_recv),0);
+	printf("bytes recevied from client = %d\n",nbytes);
 	buf_recv[nbytes] = '\0';
 	printf("%s\n",buf_recv);
 	fflush(stdout);
 	
 	printf("\nNow checking file: %s exists or not..\n",buf_recv);
-	if ((fp = fopen(buf_recv,'r')) == NULL) {
+	if ((fp = fopen(buf_recv,"r")) == NULL) {
 		sprintf(buf_send,"File could not be found!");
 		exit(0);
 	} else {
 		printf("File found.\n");
-		sprintf(buf_send,"File found\n");
+		sprintf(buf_send,"File found.");
 		send(newfd,buf_send,strlen(buf_send),0);
 	}
 	
 	printf("Sending the file content to client.. \n");
 	while(!feof(fp)) {
-		fgets(fbuffer,1000,fp);
+		fgets(fbuffer,sizeof(fbuffer),fp);
+		//fread(fbuffer,sizeof(fbuffer),1,fp);
 		if (feof(fp))
 			break;
-		strcat(filebuffer,fbuffer);
+		strcpy(filebuffer,fbuffer);
 	}
 	fclose(fp);
+	printf("filebuffer = %s\n",filebuffer);
+	printf("fbuffer = %s\n",fbuffer);
+	printf("strlen(filebuffer) = %d\n",strlen(filebuffer));
+	printf("strlen(fbuffer) = %d\n",strlen(fbuffer));
 	send(newfd,filebuffer,strlen(filebuffer),0);
 	close(newfd);
 	printf("[Server] connection closed. Waiting for new connection..\n");
@@ -58,7 +64,7 @@ void *tFun(int *arg)
 	addrlen = sizeof(cAddr);
 
 	while(1){
-		nSockfd = accept(sockfd,&cAddr,&addrlen);
+		nSockfd = accept(sockfd,(struct sockaddr *)&cAddr,(socklen_t *)&addrlen);
 		printf("\nserver now connected with nSockfd = %d\n",nSockfd);
 		fileTransfer(nSockfd);
 		close(nSockfd);
