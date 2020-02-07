@@ -21,7 +21,6 @@ irqreturn_t keystroke_handler(int irq, void *drvdata)
 static int __init keystroke_init(void)
 {
 	int ret = 0;
-
 	
 	pr_notice("Registering Ketstroke handler for IRQ 1\n");
 

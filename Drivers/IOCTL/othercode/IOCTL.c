@@ -58,8 +58,11 @@ struct DefaultData {
 
 //Structure for a character driver
 struct cdev *my_cdev;
-struct timer_list MyKernelTimer;
-
+struct timer_data {
+	struct timer_list MyKernelTimer;
+	unsigned long int data;
+};
+struct timer_data *td;
 
 //Init Module
 static int __init CharDevice_init(void)
@@ -116,7 +119,7 @@ void __exit CharDevice_exit(void)
 	printk("\nThe Major Number is %d...THe Minor Number is %d\n",MAJOR,MINOR);
 	unregister_chrdev_region(Mydev,1);			//unregister the device numbers and the device created
 	cdev_del(my_cdev);
-	del_timer(&MyKernelTimer);
+	del_timer(&td);
   	gpio_unexport(gpioLED);
 
 	printk(KERN_ALERT "\nI have unregistered the stuff that was allocated.....Goodbye for ever.....\n");
@@ -128,10 +131,10 @@ void __exit CharDevice_exit(void)
 int NAME_open(struct inode *inode, struct file *filp)
 {
 	unsigned long myjiffies, mydelay;
-	timer_setup(&MyKernelTimer, MyKernelFunction, 0);
+	timer_setup(&td.MyKernelTimer, MyKernelFunction, 0);
 	myjiffies=get_jiffies_64();
 	mydelay = myjiffies+HZ;
-	MyKernelTimer.expires = mydelay;
+	td->MyKernelTimer.expires = mydelay;
 	//MyKernelTimer.function = MyKernelFunction;
 	//MyKernelTimer.data = 1;
   	//add_timer(&MyKernelTimer);
@@ -199,11 +202,13 @@ void  MyKernelFunction(struct timer_list* data)
 	  printk(KERN_ALERT "Kernel Timer Function. Current Jiffies is %lu\n",(unsigned long)get_jiffies_64());
 	//MyKernelTimer.function=MyKernelFunction;
 	//MyKernelTimer.data=data;
-	 // MyKernelTimer.expires=jiffies + (data*HZ);
+	int idata = (int)data;
+	td = from_timer(td, data, MyKerneltimer);
+	td->MyKernelTimer.expires=jiffies + (idata*HZ);
 	myjiffies = get_jiffies_64();
 	mydelay = myjiffies*HZ;
-	MyKernelTimer.expires = mydelay;
-  add_timer(&MyKernelTimer);
+	td->MyKernelTimer.expires = mydelay;
+  add_timer(&td->MyKernelTimer);
 }
 
 	

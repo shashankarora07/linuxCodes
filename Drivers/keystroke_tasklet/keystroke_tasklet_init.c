@@ -17,7 +17,7 @@ static void keystroke_tasklet_handler(unsigned long data)
 	pr_notice("keystroke_tasklet_handler: interrupt context: %lu \n",in_interrupt());
 	pr_notice("----------------------------------------");
 	dump_stack();	
-	mdelay(1000);
+	//mdelay(1000);
 	pr_notice("----------------------------------------");
 
 	pr_notice("keystroke_tasklet_handler finished.....\n");

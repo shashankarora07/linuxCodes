@@ -1,0 +1,1 @@
+cmd_/home/shashank/linuxCodes/Drivers/gpio_interrupt/gpio.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/shashank/linux-stable/scripts/module-common.lds --build-id  -o /home/shashank/linuxCodes/Drivers/gpio_interrupt/gpio.ko /home/shashank/linuxCodes/Drivers/gpio_interrupt/gpio.o /home/shashank/linuxCodes/Drivers/gpio_interrupt/gpio.mod.o
