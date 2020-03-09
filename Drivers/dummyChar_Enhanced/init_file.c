@@ -8,6 +8,15 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
+#ifdef DEBUG_PRINT
+#define MSG(string, args...)      \
+	pr_info("%s: %s-%d: " string, \
+		DRVNAME, __FUNCTION__, __LINE__, ##args)
+#else
+	#define MAG(string, args...)
+#endif
+
+
 #define DRVNAME "myCharDevice"
 #define DRVCLASSNAME "myCharDevice_Class"
 #define DEVICE_COUNT 1
@@ -25,9 +34,9 @@ struct device *device_dev;
 
 static int my_open(struct inode *ino, struct file *filp)
 {
-	pr_notice( "Device node with minor # %d being used\n", iminor(ino));
+	MSG("Device node with minor # %d being used\n", iminor(ino));
 
-	pr_notice("my_open() is called\n");
+	MSG("my_open() is called\n");
 
 	switch (iminor(ino)) {
 		case 0:
@@ -38,7 +47,7 @@ static int my_open(struct inode *ino, struct file *filp)
 	}
 
 	dump_stack();
-	pr_notice("-----------my_open() end-------------\n");
+	MSG("-----------my_open() end-------------\n");
 	return 0;
 }
 
@@ -46,12 +55,12 @@ static ssize_t my_read(struct file *filp, char __user *buff, size_t len, loff_t 
 {
         //int mlen = len;
 		int minsize = 1;
-		char *zbuf;
+		//char *zbuf;
 		int32_t totalsize = minsize * PAGE_SIZE;
-        pr_notice("my_read() is called\n");
+        MSG("my_read() is called\n");
         //dump_stack();
 
-        pr_info("len received = %ld\n",len);
+        MSG("len received = %ld\n",len);
         
         if (len > PAGE_SIZE) {
         	if (len % PAGE_SIZE == 0) {
@@ -63,7 +72,7 @@ static ssize_t my_read(struct file *filp, char __user *buff, size_t len, loff_t 
         	} 
         }
 
-        pr_info("totalsize = %ld\n",totalsize);
+        MSG("totalsize = %d\n",totalsize);
 
   /*      if ( (zbuf=kzalloc (totalsize, GFP_KERNEL)) == NULL) {
         	pr_err("kzalloc failed");
@@ -76,15 +85,15 @@ static ssize_t my_read(struct file *filp, char __user *buff, size_t len, loff_t 
         	return -EFAULT;
         }
 */
-        pr_notice("-----------my_read() end-------------\n");
+        MSG("-----------my_read() end-------------\n");
         return totalsize;
 }
 
 int my_close(struct inode *ino, struct file *filp)
 {
-	pr_notice("my_close() is called\n");
+	MSG("my_close() is called\n");
     dump_stack();
-    pr_notice("-----------my_close() end-------------\n");
+    MSG("-----------my_close() end-------------\n");
 	return 0;
 }
 
@@ -102,11 +111,10 @@ static struct file_operations device_fops = {
 
 
 static int __init mychar_init(void) //constructor
-{
-	printk(KERN_INFO "driver init in happening");
-	
+{	
 	int ret = 0, i = 0;
-
+	
+	MSG("....INside driver init.....");
 
 	/* device_number = MKDEV(0,0);  Combination of major and minor no */
 
@@ -115,7 +123,7 @@ static int __init mychar_init(void) //constructor
 	    pr_err("failed to register on major no : %d\n", device_number);
 	    return ret;
 	} else {
-		pr_notice("%s: registered with major number : %d\n", DRVNAME,MAJOR(device_number));
+		MSG("%s: registered with major number : %d\n", DRVNAME,MAJOR(device_number));
 	}
 
 	c_device = kzalloc(DEVICE_COUNT * sizeof(struct chardrv_dev), GFP_KERNEL);
@@ -136,7 +144,7 @@ static int __init mychar_init(void) //constructor
 	    		DRVNAME, device_number,ret);
 	    	return ret;
 	    } else {
-	    	pr_notice("%s cdev %s.%d added\n",DRVNAME, DRVNAME, i);
+	    	MSG("%s cdev %s.%d added\n",DRVNAME, DRVNAME, i);
 	    }
 	}
 	/* Create the devices.
@@ -155,7 +163,7 @@ static int __init mychar_init(void) //constructor
 	    		DRVNAME, DRVNAME,i);
 	    	return -1; 
 		} else {
-			pr_notice("%s: Created device file :/dev/%s.%d\n",DRVNAME,DRVNAME,i);
+			MSG("%s: Created device file :/dev/%s.%d\n",DRVNAME,DRVNAME,i);
 		}
 	}
 
@@ -166,7 +174,7 @@ static void __exit mychar_exit(void)
 {
 	int i = 0;
 
-	pr_notice("allocated memory about to destroy now..\n");
+	MSG("allocated memory about to destroy now..\n");
 	for (i = 0; i < DEVICE_COUNT; ++i) {
 		cdev_del(&c_device[i].cdev);
 		device_destroy(device_class, MKDEV(MAJOR(device_number),
@@ -176,7 +184,7 @@ static void __exit mychar_exit(void)
 	kfree(c_device);
 	unregister_chrdev_region(device_number, DEVICE_COUNT);
 
-	pr_notice("driver is unregistered. Done!\n");
+	MSG("driver is unregistered. Done!\n");
 }
 
 
