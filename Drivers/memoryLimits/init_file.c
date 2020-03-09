@@ -105,7 +105,7 @@ static struct file_operations device_fops = {
         .llseek = no_llseek,
 };
 
-//static struct file_operations
+static DEVICE_ATTR();
 
 
 
