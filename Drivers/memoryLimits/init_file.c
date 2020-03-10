@@ -29,8 +29,8 @@ struct chardrv_dev {
 dev_t device_number;
 
 //struct cdev c_device;
-struct class *device_class = NULL;
-struct device *device_dev;
+static struct class *device_class = NULL;
+static struct device *device_dev;
 
 static int my_open(struct inode *ino, struct file *filp)
 {
@@ -105,7 +105,7 @@ static struct file_operations device_fops = {
         .llseek = no_llseek,
 };
 
-static DEVICE_ATTR();
+static DEVICE_ATTR(kmalloc_test,0660,);
 
 
 
@@ -166,6 +166,8 @@ static int __init mychar_init(void) //constructor
 			MSG("%s: Created device file :/dev/%s.%d\n",DRVNAME,DRVNAME,i);
 		}
 	}
+
+	device_create_file(device_dev,);
 
 	return 0;
 }
