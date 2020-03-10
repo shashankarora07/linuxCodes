@@ -1,0 +1,1 @@
+cmd_/home/ee211366/Shashank/linuxCodes/Drivers/memoryLimits/jarvis.o := ld -m elf_x86_64 -z max-page-size=0x200000   -r -o /home/ee211366/Shashank/linuxCodes/Drivers/memoryLimits/jarvis.o /home/ee211366/Shashank/linuxCodes/Drivers/memoryLimits/init_file.o 

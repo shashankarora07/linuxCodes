@@ -3,6 +3,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/fs.h>
+#include <linux/types.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/slab.h>
@@ -31,6 +32,8 @@ dev_t device_number;
 //struct cdev c_device;
 static struct class *device_class = NULL;
 static struct device *device_dev;
+//static int kread, kwrite_nrm;
+static atomic_t kval;
 
 static int my_open(struct inode *ino, struct file *filp)
 {
@@ -97,6 +100,40 @@ int my_close(struct inode *ino, struct file *filp)
 	return 0;
 }
 
+static ssize_t bytes_read_kmalloc(struct device *dev, struct device_attribute *attr, 
+			   char *buff)
+{
+	/* for testing purpose */
+	MSG("started");
+	int temp = 0;
+
+	//MSG("kwrite = %d, kread = %d \n",kwrite,kread);
+	MSG("kval = %d \n",kval);
+	//atomic_set(&kval,temp);
+	//MSG("kval = %d and temp = %d\n",kval,temp);
+
+	return sprintf(buff, "%d\n", atomic_read(&kval));
+
+}
+
+static ssize_t bytes_allocate_thr_kmalloc(struct device *dev, struct device_attribute *attr,
+				const char *buff, size_t count)
+{
+	/* for testing purpose */
+	MSG("started");
+	MSG("buff = %s",buff);
+	int temp = 0;
+
+	sscanf(buff, "%d", &temp);
+	atomic_set(&kval,temp);
+
+	//kwrite_nrm = (int*)&kwrite;
+	//return sprintf(buff, "%d\n", kwrite);
+	MSG("kval = %d, temp = %d \n",kval,temp);
+
+	return temp;
+}
+
 static struct file_operations device_fops = {
         .open = my_open,
         .release = my_close,
@@ -105,9 +142,26 @@ static struct file_operations device_fops = {
         .llseek = no_llseek,
 };
 
-static DEVICE_ATTR(kmalloc_test,0660,);
+/** #define DEVICE_ATTR(_name, _mode, _show, _store) \
+ *     struct device_attribute dev_attr_##_name = __ATTR(_name, _mode, _show, _store)
+**/
+/** // interface for exporting device attributes
+struct device_attribute {
+    struct attribute    attr;
+    ssize_t (*show)(struct device *dev, struct device_attribute *attr,
+            char *buf);
+    ssize_t (*store)(struct device *dev, struct device_attribute *attr,
+             const char *buf, size_t count);
+};
+**/
+#undef VERIFY_OCTAL_PERMISSIONS
+#define VERIFY_OCTAL_PERMISSIONS(perms) (perms)
 
-
+static DEVICE_ATTR(kmalloc_test, S_IRUGO | S_IWUGO, bytes_read_kmalloc, bytes_allocate_thr_kmalloc);
+//static DEVICE_ATTR(kmalloc_test_read, S_IRUSR, bytes_read_kmalloc, NULL);
+//static DEVICE_ATTR(kmalloc_test_write, S_IWUSR, NULL, bytes_allocate_thr_kmalloc);
+//static DEVICE_ATTR(kmalloc_test_read, S_IRUGO, bytes_read_kmalloc, NULL);
+//static DEVICE_ATTR(kmalloc_test_write, S_IWUGO, NULL, bytes_allocate_thr_kmalloc);
 
 
 static int __init mychar_init(void) //constructor
@@ -153,10 +207,16 @@ static int __init mychar_init(void) //constructor
 	 */	
 
 	device_class = class_create(THIS_MODULE, DRVCLASSNAME);
+	if (IS_ERR(device_class)) {
+		MSG("failed to register device class '%s'\n",DRVCLASSNAME);
+		ret = PTR_ERR(device_class);
+		goto failed_classreg;
+	}
+
 
 	for (i = 0; i < DEVICE_COUNT; ++i) {
 		device_dev = device_create(device_class, NULL, MKDEV(MAJOR(device_number),
-			MINOR(device_number)+i), NULL, "%s.%d", DRVNAME,i);
+			MINOR(device_number)+i), NULL, "%s_%d", DRVNAME,i);
 
 		if (unlikely(device_dev < 0)) {
 	    	pr_err("%s: failed to create device node /dev/%s.%d !\n",
@@ -167,7 +227,24 @@ static int __init mychar_init(void) //constructor
 		}
 	}
 
-	device_create_file(device_dev,);
+	ret = device_create_file(device_dev,&dev_attr_kmalloc_test);
+	if (ret < 0) {
+		MSG("failed to create write /sys endpoint - continuing without\n");
+	}
+/*
+	ret = device_create_file(device_dev,&dev_attr_kmalloc_test_read);
+	if (ret < 0) {
+		MSG("failed to create write /sys endpoint - continuing without\n");
+	}
+
+	ret = device_create_file(device_dev,&dev_attr_kmalloc_test_write);
+	if (ret < 0) {
+		MSG("failed to create write /sys endpoint - continuing without\n");
+	}
+*/
+
+failed_classreg: 
+	unregister_chrdev_region(device_number, DEVICE_COUNT);
 
 	return 0;
 }
@@ -177,6 +254,10 @@ static void __exit mychar_exit(void)
 	int i = 0;
 
 	MSG("allocated memory about to destroy now..\n");
+
+	device_remove_file(device_dev, &dev_attr_kmalloc_test);
+	//device_remove_file(device_dev, &dev_attr_kmalloc_test_read);
+	//device_remove_file(device_dev, &dev_attr_kmalloc_test_write);
 	for (i = 0; i < DEVICE_COUNT; ++i) {
 		cdev_del(&c_device[i].cdev);
 		device_destroy(device_class, MKDEV(MAJOR(device_number),
