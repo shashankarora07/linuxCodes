@@ -13,7 +13,7 @@
 	pr_info("%s: %s-%d: " string, \
 		DRVNAME, __FUNCTION__, __LINE__, ##args)
 #else
-	#define MAG(string, args...)
+	#define MSG(string, args...)
 #endif
 
 
