@@ -32,6 +32,8 @@ typedef struct taskdetail {
 
 static taskdtl *taskdtl_ptr;
 
+int display_task_details(struct task_struct *);
+
 static int my_open(struct inode *ino, struct file *filp)
 {
 	MSG("Device node with minor # %d being used\n", iminor(ino));
@@ -99,12 +101,57 @@ int my_close(struct inode *ino, struct file *filp)
 
 static ssize_t debug_taskinfo_read(struct file *filp, char __user *buff, size_t len, loff_t *off)
 {
+	MSG("---------------");
 
-	return len;
+	return taskdtl_ptr->pidinfo;
 }
 
 static ssize_t debug_taskinfo_write(struct file *filp, const char __user *buff, size_t len, loff_t *off)
 {
+	struct task_struct *taskp = NULL;
+	char *kbuff = kzalloc(15,GFP_KERNEL);
+	u32 PID = 1;
+	int ret = 0;
+
+	MSG("strlen buff = %d\n",strlen(buff));
+	MSG("buff = %s \n",buff);
+	MSG("Will fail in next line. did u see the crash\n");
+	MSG("len = %d\n",len);
+
+	if (!kbuff) {
+		pr_err("%s:%s(): kmalloc(10) failed !\n", MISCDEVNAME, __FUNCTION__);
+		return -ENOMEM;
+	}
+
+	// reading PID from userspace
+	if (copy_from_user(kbuff, buff, len)) {
+		pr_err("%s:%s(): copy_from_user failed !\n", MISCDRVNAME, __FUNCTION__);
+		ret = -EFAULT;
+		goto OUT;
+	}
+	MSG("kbuff = %s\n",kbuff);
+
+	if ((ret = kstrtouint(kbuff, 0, &PID)) < 0) {
+		pr_err("%s:%s(): kstrtouint failed : not a numeric value passed\n",MISCDEVNAME, __FUNCTION__);
+		goto OUT;
+	}
+
+	taskdtl_ptr->pidinfo = PID;
+	//rcu_read_lock();
+	taskp = get_pid_task(find_get_pid(PID),PIDTYPE_PID);
+	if (!taskp) {
+		pr_err("%s:%s(): failed to obtain task struct pointer for %d\n",MISCDEVNAME,__FUNCTION__,PID);
+		ret = -EINVAL;
+		goto OUT;
+	}
+	pr_info("PID = %d and taskptr = 0x%lx\n",PID,taskp);
+	MSG("passing pointer to task detail function\n");
+	display_task_details(taskp);
+
+	//rcu_read_unlock();
+OUT:
+	kfree(kbuff);
+	return ret;
 
 }
 
@@ -154,9 +201,9 @@ static int __init miscdrv_init(void) //constructor
 		ret = -ENOMEM;
 		goto OUT;
 	}
-	taskdtl_ptr->pidinfo = 0;
+	taskdtl_ptr->pidinfo = 10;
 
-	if (!debugfs_create_file(DBGFILENAME1, 0666, parent, (void *)&taskdtl_ptr, &debug_fops)) {
+	if (!debugfs_create_file(DBGFILENAME1, 0666, parent, (void *)&taskdtl_ptr->pidinfo, &debug_fops)) {
 		pr_err("debugfs_create_file: failed to create /sys/kernel/debug/%s/%s\n", \
 			DBGDIRNAME,DBGFILENAME1);
 		ret = PTR_ERR(parent);

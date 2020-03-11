@@ -3,7 +3,7 @@ PWD := $(shell pwd)
 
 EXTRA_CFLAGS += -DDEBUG_PRINT
 obj-m := taskdtl.o
-taskdtl-objs := miscdrv_taskdtl.o
+taskdtl-objs := miscdrv_taskdtl.o display_taskdtl.o
 all:
 	make -C $(KERNDIR) M=$(PWD) modules
 install:
